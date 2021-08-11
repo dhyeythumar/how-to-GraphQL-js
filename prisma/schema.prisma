@@ -11,7 +11,7 @@ generator client {
     provider = "prisma-client-js"
 }
 
-// postedBy is not a real field in DB, its only used by the prisma to handle the relations
+// postedBy is not a real field in DB, its only used by the prisma to handle the relations (sudo field)
 model Link {
     id          Int      @id @default(autoincrement())
     createdAt   DateTime @default(now())
@@ -19,13 +19,26 @@ model Link {
     url         String
     postedBy    User?    @relation(fields: [postedById], references: [id])
     postedById  Int?
+    votes       Vote[]
 }
 
-// links is not a real field in DB, its only used by the prisma to handle the relations
+// links is a sudo field
 model User {
     id       Int    @id @default(autoincrement())
     name     String
     email    String @unique
     password String
     links    Link[]
+    votes    Vote[]
+}
+
+// link & user are the sudo fields
+model Vote {
+    id     Int  @id @default(autoincrement())
+    link   Link @relation(fields: [linkId], references: [id])
+    linkId Int
+    user   User @relation(fields: [userId], references: [id])
+    userId Int
+
+    @@unique([linkId, userId])
 }
