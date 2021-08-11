@@ -1,18 +1,19 @@
-// !--------------------------------- Note on this project -------------------------------
+//!--------------------------------- Note on this project -------------------------------
 /*
  * This project employees 1 of the 3 method of creating GraphQL APIs
  * i.e It directly uses DB in resolvers (n not the legacy APIs) with the help of Prisma (advanced ORM)
  */
 
-// !------------------------------------ Note on GraphQL ---------------------------------
+//!------------------------------------ Note on GraphQL ---------------------------------
 /* There are 3 root types: Query, Mutation, and Subscription
     >> The fields on these root types are called root fields and define the available API operations.
     >>  When sending operations (such as queries, mutations or subscriptions) to a GraphQL API, these always need to start with a root types
 
   Other custom types can be also defined in schema but can't be used directly by clients
 */
+//! Subscriptions are typically implemented via WebSockets
 
-// !--------------------------------- Note on Apollo-Server ------------------------------
+//!--------------------------------- Note on Apollo-Server ------------------------------
 // apollo-server is a fully-featured GraphQL server. It uses Express.js and a few other libraries (behind the scenes) to help build production-ready GraphQL servers.
 /*
  * List of its features:
@@ -24,9 +25,12 @@
  *      6. Query performance tracing
  *      7. Runs everywhere: Can be deployed via Vercel, Up, AWS Lambda, Heroku etc.
  */
-// ! apollo-server uses apollo-server-express under the hood
+//! apollo-server uses apollo-server-express under the hood.
+//! apollo-server v3 doesn't support subscriptions so swap out to apollo-server-express.
+// The PubSub class is not recommended for production environments, because it's an in-memory event system that only supports a single server instance.
+//* So check out: https://www.apollographql.com/docs/apollo-server/data/subscriptions/#production-pubsub-libraries
 
-// !---------------------------------- Note on Prisma ------------------------------------
+//!---------------------------------- Note on Prisma ------------------------------------
 // Prisma is an open source database toolkit that makes it easy for developers to reason about their data and how they access it, by providing a clean and type-safe API for submitting database queries.
 /*
  * It mainly consists of three tools:
@@ -41,14 +45,9 @@
  *  2. (if schema is updated locally then) To migrate the changes >_ npx prisma migrate dev --name "<comment-similar-to-git>"
  *  3. Now generate client >_ npx prisma generate
  *
- *  * Prisma studio >_ npx prisma studio
+ *  * Browse your data with Prisma Studio >_ npx prisma studio
  */
 //--------------------------------------------------------------------------------------
-
-// ! apollo-server v3 doesn't support subscriptions so swap out to apollo-server-express.
-
-// ! The PubSub class is not recommended for production environments, because it's an in-memory event system that only supports a single server instance.
-// * So chec out https://www.apollographql.com/docs/apollo-server/data/subscriptions/#production-pubsub-libraries
 
 import fs from "fs";
 import path from "path";
