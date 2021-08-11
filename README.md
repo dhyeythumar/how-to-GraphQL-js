@@ -1,2 +1,3 @@
-# how-to-GraphQL-js
-Simple example project on GraphQL APIs using JavaScript
+# How To GraphQL using JavaScript
+
+Work In Progress
