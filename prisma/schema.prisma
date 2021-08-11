@@ -1,0 +1,31 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+datasource db {
+    provider = "sqlite"
+    // url      = env("DATABASE_URL")
+    url      = "file:./dev.db"
+}
+
+generator client {
+    provider = "prisma-client-js"
+}
+
+// postedBy is not a real field in DB, its only used by the prisma to handle the relations
+model Link {
+    id          Int      @id @default(autoincrement())
+    createdAt   DateTime @default(now())
+    description String
+    url         String
+    postedBy    User?    @relation(fields: [postedById], references: [id])
+    postedById  Int?
+}
+
+// links is not a real field in DB, its only used by the prisma to handle the relations
+model User {
+    id       Int    @id @default(autoincrement())
+    name     String
+    email    String @unique
+    password String
+    links    Link[]
+}
