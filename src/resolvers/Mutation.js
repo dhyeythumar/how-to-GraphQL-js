@@ -50,4 +50,29 @@ export default {
         context.pubsub.publish("NEW_LINK", { newLink });
         return newLink;
     },
+    vote: async (parent, args, context, info) => {
+        const userId = context.userId;
+        if (userId === undefined) throw new Error("Not Authenticated");
+
+        const vote = await context.prismaClient.vote.findUnique({
+            where: {
+                linkId_userId: {
+                    linkId: Number(args.linkId),
+                    userId: userId,
+                },
+            },
+        });
+        if (Boolean(vote)) {
+            throw new Error(`Already voted for link: ${args.linkId}`);
+        }
+
+        const newVote = context.prismaClient.vote.create({
+            data: {
+                user: { connect: { id: userId } },
+                link: { connect: { id: Number(args.linkId) } },
+            },
+        });
+        context.pubsub.publish("NEW_VOTE", { newVote });
+        return newVote;
+    },
 };

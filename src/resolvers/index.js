@@ -3,6 +3,7 @@ import Mutation from "./Mutation.js";
 import Subscription from "./Subscription.js";
 import User from "./User.js";
 import Link from "./Link.js";
+import Vote from "./Vote.js";
 
 export default {
     Query,
@@ -10,4 +11,5 @@ export default {
     Subscription,
     User,
     Link,
+    Vote,
 };
