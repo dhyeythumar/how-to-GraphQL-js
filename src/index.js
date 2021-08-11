@@ -12,7 +12,7 @@
   Other custom types can be also defined in schema but can't be used directly by clients
 */
 
-// !--------------------------------- Note on Apollo Server ------------------------------
+// !--------------------------------- Note on Apollo-Server ------------------------------
 // apollo-server is a fully-featured GraphQL server. It uses Express.js and a few other libraries (behind the scenes) to help build production-ready GraphQL servers.
 /*
  * List of its features:
@@ -24,6 +24,7 @@
  *      6. Query performance tracing
  *      7. Runs everywhere: Can be deployed via Vercel, Up, AWS Lambda, Heroku etc.
  */
+// ! apollo-server uses apollo-server-express under the hood
 
 // !---------------------------------- Note on Prisma ------------------------------------
 // Prisma is an open source database toolkit that makes it easy for developers to reason about their data and how they access it, by providing a clean and type-safe API for submitting database queries.
@@ -44,48 +45,86 @@
  */
 //--------------------------------------------------------------------------------------
 
+// ! apollo-server v3 doesn't support subscriptions so swap out to apollo-server-express.
+
+// ! The PubSub class is not recommended for production environments, because it's an in-memory event system that only supports a single server instance.
+// * So chec out https://www.apollographql.com/docs/apollo-server/data/subscriptions/#production-pubsub-libraries
+
 import fs from "fs";
 import path from "path";
-import { ApolloServer } from "apollo-server";
+import { ApolloServer } from "apollo-server-express";
+import { PubSub } from "graphql-subscriptions";
+import express from "express";
 import prisma from "@prisma/client";
 
+// To run both an Express app and a separate subscription server, we'll create an http.Server instance that effectively wraps the two and becomes a new listener
+import { createServer } from "http";
+import { execute, subscribe } from "graphql";
+import { SubscriptionServer } from "subscriptions-transport-ws";
+import { makeExecutableSchema } from "@graphql-tools/schema";
+
 import { getUserId } from "./utils.js";
-import Query from "./resolvers/Query.js";
-import Mutation from "./resolvers/Mutation.js";
-import User from "./resolvers/User.js";
-import Link from "./resolvers/Link.js";
+import resolvers from "./resolvers/index.js";
 
-const prismaClient = new prisma.PrismaClient();
+(async () => {
+    const app = express();
+    const httpServer = createServer(app);
 
-const resolvers = {
-    Query,
-    Mutation,
-    User,
-    Link,
-};
+    const prismaClient = new prisma.PrismaClient();
+    const pubsub = new PubSub();
 
-const graphQLSchema = fs.readFileSync(
-    path.join("src/", "schema.graphql"),
-    "utf8"
-);
+    const schema = makeExecutableSchema({
+        typeDefs: fs.readFileSync(path.join("src/", "schema.graphql"), "utf8"),
+        resolvers,
+    });
 
-const server = new ApolloServer({
-    typeDefs: graphQLSchema,
-    resolvers,
-    context: ({ req }) => {
-        return {
+    const server = new ApolloServer({
+        schema,
+        context: ({ req }) => ({
             ...req,
             prismaClient,
+            pubsub,
             userId:
                 req && req.headers.authorization ? getUserId(req) : undefined,
-        };
-    },
-});
+        }),
+    });
+    // Required logic for integrating with Express
+    await server.start();
+    server.applyMiddleware({
+        app,
+        path: server.graphqlPath,
+    });
 
-server.listen().then(({ url }) => {
-    console.log(`
-    🚀  Server is running!
-    🔉  Listening on port 4000
-    📭  Query at https://studio.apollographql.com/dev
-  `);
-});
+    const subscriptionServer = SubscriptionServer.create(
+        {
+            schema,
+            execute,
+            subscribe,
+            onConnect(connectionParams, webSocket, context) {
+                // connectionParams holds the req headers
+                console.log("Connected!");
+                return { pubsub, prismaClient };
+            },
+            onDisconnect(webSocket, context) {
+                console.log("Disconnected!");
+            },
+        },
+        {
+            server: httpServer,
+            path: server.graphqlPath,
+        }
+    );
+
+    const port = process.env.PORT || 4000;
+    httpServer.listen(port, () =>
+        console.log(`
+        🚀 Server ready at http://localhost:${port}${server.graphqlPath}
+        📭  Query at https://studio.apollographql.com/dev
+        `)
+    );
+
+    // Shut down in the case of interrupt and termination signals
+    ["SIGINT", "SIGTERM"].forEach((signal) => {
+        process.on(signal, () => subscriptionServer.close());
+    });
+})();
