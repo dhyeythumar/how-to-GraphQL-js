@@ -2,6 +2,23 @@ type Query {
     info: String!
     users: [User!]!
     links: [Link!]!
+    feed(filter: String, skip: Int, take: Int, orderBy: LinkOrderByInput): Feed!
+}
+
+type Feed {
+    links: [Link!]!
+    count: Int!
+}
+
+input LinkOrderByInput {
+    description: Sort
+    url: Sort
+    createdAt: Sort
+}
+
+enum Sort {
+    asc
+    desc
 }
 
 type Mutation {
